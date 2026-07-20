@@ -549,7 +549,8 @@ function Onboard({ onDone }) {
 }
 
 // ─── NAV ─────────────────────────────────────────────────────────────────────
-function Nav({ view, setView, userName, role }) {
+function Nav({ view, setView, userName, role, setOnboarded, setRole, setUserName, setProgress, setReflections }) {
+  const [menuOpen, setMenuOpen] = useState(false);
   const tabs = [["home","Dashboard"],["modules","Modules"],["progress","My progress"],
     ...(role === "trainer" ? [["trainer","Trainer view"]] : []),
     ["resources","Resources"]];
@@ -566,14 +567,35 @@ function Nav({ view, setView, userName, role }) {
           </button>
         ))}
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0, position: "relative" }}>
         <div style={{ textAlign: "right", lineHeight: 1.25 }}>
           <div style={{ fontSize: 11, color: T.steelDark }}>Signed in as</div>
           <div style={{ fontSize: 13, color: "#fff", fontWeight: 700 }}>{userName}</div>
         </div>
-        <div style={{ width: 34, height: 34, borderRadius: "50%", background: T.blue, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13 }}>
+        <div onClick={() => setMenuOpen(m => !m)}
+          style={{ width: 34, height: 34, borderRadius: "50%", background: T.blue, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
           {(userName[0] || "?").toUpperCase()}
         </div>
+        {menuOpen && (
+          <div style={{ position: "absolute", top: 44, right: 0, background: "#fff", borderRadius: 10, boxShadow: "0 8px 24px -6px rgba(0,37,66,.25)", minWidth: 200, zIndex: 200, overflow: "hidden" }}
+            onMouseLeave={() => setMenuOpen(false)}>
+            <div style={{ padding: "10px 16px", fontSize: 12, color: T.muted, borderBottom: `1px solid ${T.cardBorder}`, fontWeight: 600, letterSpacing: ".5px", textTransform: "uppercase" }}>
+              {role === "trainer" ? "Trainer" : "Participant"} view
+            </div>
+            <div onClick={() => { setMenuOpen(false); if(window.confirm("Switch role? This will reset your session.")) { setOnboarded(false); setRole(null); setUserName(""); setProgress({}); setReflections({}); }}}
+              style={{ padding: "12px 16px", fontSize: 14, color: T.slate, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}
+              onMouseEnter={e => e.currentTarget.style.background = T.highlight}
+              onMouseLeave={e => e.currentTarget.style.background = "none"}>
+              ⇄ Switch role
+            </div>
+            <div onClick={() => { setMenuOpen(false); if(window.confirm("Reset all progress and start over?")) { setProgress({}); setReflections({}); setOnboarded(false); setRole(null); setUserName(""); }}}
+              style={{ padding: "12px 16px", fontSize: 14, color: "#c0392b", cursor: "pointer", display: "flex", alignItems: "center", gap: 8, borderTop: `1px solid ${T.cardBorder}` }}
+              onMouseEnter={e => e.currentTarget.style.background = "#fdf0f0"}
+              onMouseLeave={e => e.currentTarget.style.background = "none"}>
+              ↺ Restart demo
+            </div>
+          </div>
+        )}
       </div>
     </nav>
   );
@@ -782,7 +804,73 @@ function ProgressView({ userName, totalPts, completedCount, progress, reflection
   );
 }
 
+const QUICK_LINKS = [
+  {
+    label: "Facilitation guide",
+    format: "PDF",
+    icon: "📋",
+    desc: "Step-by-step delivery guide covering timing, discussion prompts, debrief questions, and facilitation tips for all 8 modules.",
+    location: "Shared via SharePoint · CSI AIMpact Program Library",
+  },
+  {
+    label: "Participant workbook",
+    format: "PDF",
+    icon: "📓",
+    desc: "22-page participant workbook with module summaries, CRISP prompting worksheets, reflection pages, and the SOCS reference card.",
+    location: "Shared via SharePoint · CSI AIMpact Program Library",
+  },
+  {
+    label: "Master slide deck",
+    format: "PPTX",
+    icon: "🖥️",
+    desc: "Full two-day slide deck in McKesson brand standards. Includes facilitator notes, activity slides, and all module visuals.",
+    location: "Shared via SharePoint · CSI AIMpact Program Library",
+  },
+  {
+    label: "Cohort roster and attendance",
+    format: "XLSX",
+    icon: "👥",
+    desc: "Pre-populated cohort roster with attendance tracking, completion status, and fluency points per participant.",
+    location: "Shared via SharePoint · CSI AIMpact Program Library",
+  },
+];
+
+function ResourceModal({ resource, onClose }) {
+  if (!resource) return null;
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,37,66,.5)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(2px)" }}
+      onClick={e => e.target === e.currentTarget && onClose()}>
+      <div style={{ background: T.cardWhite, borderRadius: 16, padding: "32px 36px", maxWidth: 480, width: "90%", boxShadow: "0 30px 60px -20px rgba(0,0,0,.4)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+          <div>
+            <Pill>{resource.format}</Pill>
+            <div style={{ fontWeight: 800, fontSize: 22, color: T.navy, marginTop: 10 }}>{resource.icon} {resource.label}</div>
+          </div>
+          <button onClick={onClose} style={{ background: T.highlight, border: "none", width: 32, height: 32, borderRadius: 8, cursor: "pointer", fontSize: 15, color: T.slate }}>✕</button>
+        </div>
+        <p style={{ color: T.slate, fontSize: 15, lineHeight: 1.65, marginBottom: 20 }}>{resource.desc}</p>
+        <div style={{ background: T.highlight, borderRadius: 10, padding: "12px 16px", marginBottom: 24, display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 16 }}>📁</span>
+          <span style={{ fontSize: 13, color: T.muted }}>{resource.location}</span>
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <Btn variant="primary" onClick={() => { window.open("https://sharepoint.com", "_blank"); onClose(); }}>
+            Open in SharePoint →
+          </Btn>
+          <Btn variant="ghost" small onClick={() => {
+            window.open(`mailto:?subject=AIM28 Resource Request: ${resource.label}&body=Please share the ${resource.label} for the AIM28 AI Fluency program.`);
+          }}>
+            Request via email
+          </Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function TrainerView({ onOpenModule }) {
+  const [activeResource, setActiveResource] = useState(null);
+
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 8 }}>
@@ -801,7 +889,7 @@ function TrainerView({ onOpenModule }) {
             { label: "Test breakout rooms and polls",   done: false },
           ].map((item, i) => (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 0", borderBottom: i < 3 ? `1px solid ${T.cardBorder}` : "none" }}>
-              <div style={{ width: 20, height: 20, borderRadius: 4, background: item.done ? T.success : "transparent", border: item.done ? `none` : `1.8px solid #C4CED8`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <div style={{ width: 20, height: 20, borderRadius: 4, background: item.done ? T.success : "transparent", border: item.done ? "none" : `1.8px solid #C4CED8`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 {item.done && <span style={{ color: "#fff", fontSize: 12, fontWeight: 700 }}>✓</span>}
               </div>
               <span style={{ fontSize: 14.5, color: item.done ? T.slate : T.muted }}>{item.label}</span>
@@ -817,9 +905,18 @@ function TrainerView({ onOpenModule }) {
 
         <div style={{ ...S.card, borderRadius: 14, padding: "22px 26px" }}>
           <div style={{ fontWeight: 800, fontSize: 16, color: T.navy, marginBottom: 16 }}>Quick links</div>
-          {["Facilitation guide (PDF)","Participant workbook","Master slide deck","Cohort roster and attendance"].map((item, i, arr) => (
-            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "11px 0", borderBottom: i < arr.length - 1 ? `1px solid ${T.highlight}` : "none" }}>
-              <span style={{ fontSize: 14.5, color: T.slate, fontWeight: 500 }}>{item}</span>
+          {QUICK_LINKS.map((item, i, arr) => (
+            <div key={i} onClick={() => setActiveResource(item)}
+              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "11px 0", borderBottom: i < arr.length - 1 ? `1px solid ${T.highlight}` : "none", cursor: "pointer" }}
+              onMouseEnter={e => e.currentTarget.style.opacity = "0.7"}
+              onMouseLeave={e => e.currentTarget.style.opacity = "1"}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 16 }}>{item.icon}</span>
+                <div>
+                  <div style={{ fontSize: 14.5, color: T.slate, fontWeight: 500 }}>{item.label}</div>
+                  <div style={{ fontSize: 11, color: T.faint }}>{item.format}</div>
+                </div>
+              </div>
               <span style={{ color: T.blue, fontWeight: 700, fontSize: 15 }}>→</span>
             </div>
           ))}
@@ -841,6 +938,8 @@ function TrainerView({ onOpenModule }) {
           </div>
         ))}
       </div>
+
+      <ResourceModal resource={activeResource} onClose={() => setActiveResource(null)} />
     </div>
   );
 }
@@ -941,7 +1040,7 @@ export default function AIM28Hub() {
       `}</style>
 
       <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-        <Nav view={view} setView={setView} userName={userName} role={role} />
+        <Nav view={view} setView={setView} userName={userName} role={role} setOnboarded={setOnboarded} setRole={setRole} setUserName={setUserName} setProgress={setProgress} setReflections={setReflections} />
 
         <main style={{ flex: 1, maxWidth: 1140, margin: "0 auto", padding: "38px 48px", width: "100%" }}>
           {view === "home"      && <Dashboard userName={userName} totalPts={totalPts} completedCount={completedCount} progress={progress} onOpenModule={id => setDrawer(id)} />}
